@@ -1,0 +1,66 @@
+#===============================================================================
+# get-scriptupdate.config - configuration for get-scriptupdate.sh
+# Setup:  cp get-scriptupdate.config.example get-scriptupdate.config, edit with vi, chmod 660.
+# Syntax: sourced by bash (it is code): KEY="value", no spaces around the "=".
+#         ${SCRIPT_DIR} and ${SCRIPT_NAME} can be used in values.
+# No secrets here: the script needs no credentials (public repos, HTTPS).
+#===============================================================================
+
+# Config format version. Must match the script, otherwise it aborts (exit code 3).
+# Do not change by hand; adjust it only after following the release notes.
+CONFIG_VERSION="1"
+
+#===============================================================================
+# 1. REQUIRED - set these for every project
+#===============================================================================
+
+# None. All values have defaults (block 3).
+
+#===============================================================================
+# 2. OPTIONAL - empty means "not used"
+#===============================================================================
+
+# EXCLUDE_DIRS: directories below SCRIPTS_ROOT that are ignored completely, for
+# example folders that are not scripts or legacy scripts that are not converted
+# to a Git clone yet. Without an exclusion, a directory without .git is reported
+# as skipped and prevents the marker file (see MARKER_FILE).
+# Format: bash array of directory names. Example: EXCLUDE_DIRS=("old-script" "tmp")
+EXCLUDE_DIRS=()
+
+#===============================================================================
+# 3. DEFAULTS - change only in individual cases
+# The values below are the defaults defined in the script rules.
+#===============================================================================
+
+# SCRIPTS_ROOT: directory that contains one Git clone per script.
+# Format: absolute path. Default: /usr/local/scripts
+SCRIPTS_ROOT="/usr/local/scripts"
+
+# ALLOWED_SIGNERS_FILE: public keys that are allowed to sign release tags (trust
+# anchor). Must be owned by root:root and not writable by group or others.
+# Format: absolute path. Default: /etc/get-scriptupdate/allowed_signers
+ALLOWED_SIGNERS_FILE="/etc/get-scriptupdate/allowed_signers"
+
+# REMOTE_NAME: Git remote from which new tags are fetched.
+# Format: remote name. Default: origin
+REMOTE_NAME="origin"
+
+# GIT_TIMEOUT_SECONDS: maximum duration of one fetch per script, so a hanging
+# connection cannot block the run forever.
+# Format: whole number of seconds. Default: 120
+GIT_TIMEOUT_SECONDS="120"
+
+# --- Paths: defaults from the script rules, override only if a system needs
+# --- something different.
+
+# Log file. Rotation is done by logrotate (/etc/logrotate.d/get-scriptupdate).
+# The directory must exist and be writable for root.
+LOG_FILE="/var/log/${SCRIPT_NAME}/${SCRIPT_NAME}.log"
+
+# Marker file, written only after a completely clean run: nothing skipped, no
+# major update pending, no error. Not written on --dry-run and not after --only.
+# Monitored by n-sight: an alarm is raised when the file gets too old.
+MARKER_FILE="${SCRIPT_DIR}/last-successful"
+
+# Lock file to prevent parallel runs.
+LOCK_FILE="/run/lock/${SCRIPT_NAME}.lock"
