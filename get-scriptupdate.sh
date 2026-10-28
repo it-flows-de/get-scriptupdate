@@ -19,7 +19,7 @@ set -euo pipefail
 # Cron starts jobs with a minimal PATH (/usr/bin:/bin) that lacks runuser (in /usr/sbin)
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 REQUIRED_CONFIG_VERSION="1"
 
 # The only paths derived in the script: its own directory and, by convention,
@@ -126,6 +126,9 @@ on_exit() {
 # running git as root in a user-owned repository would execute hooks and config
 # of that repository as root. Global and system git config are ignored, the
 # signature settings are forced on the command line.
+# core.fileMode=false: a differing executable bit is not a local change. Tags
+# created before the bit was tracked (or on file systems that lose it) would
+# otherwise block the update; a checkout still applies the mode of the new tag.
 # With "--net" as first argument the call is limited by GIT_TIMEOUT_SECONDS.
 git_run() {
     local -a cmd=()
@@ -143,7 +146,7 @@ git_run() {
     cmd+=(env GIT_TERMINAL_PROMPT=0 GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
         LC_ALL=C "HOME=${CUR_HOME}"
         git -C "${CUR_DIR}"
-        -c gpg.format=ssh -c gpg.ssh.program=ssh-keygen
+        -c gpg.format=ssh -c gpg.ssh.program=ssh-keygen -c core.fileMode=false
         -c "gpg.ssh.allowedSignersFile=${ALLOWED_SIGNERS_FILE}"
         "$@")
     "${cmd[@]}"
@@ -194,7 +197,7 @@ process_dir() {
     CUR_HOME="$(getent passwd "${CUR_OWNER}" | cut -d: -f6 || true)"
     [[ -d "${CUR_HOME}" ]] || CUR_HOME="/"
 
-    # Local changes to tracked files (including the executable bit) block the update
+    # Local changes to tracked files block the update (the executable bit is ignored, see git_run)
     if ! out="$(git_run status --porcelain --untracked-files=no 2>&1)"; then
         result "${name}" error ERROR "git status failed: $(head -n1 <<<"${out}")"
         return 0
